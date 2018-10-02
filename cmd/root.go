@@ -1,4 +1,4 @@
-// Copyright © 2018 NAME HERE <EMAIL ADDRESS>
+// Copyright © 2018 Miguel Chan <vvchan@outlook.com>
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,17 +23,19 @@ import (
 	"github.com/spf13/viper"
 )
 
-var cfgFile string
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "selpg-go",
 	Short: "A utility tool for selecting page",
-	Long: `selpg is a command line utility tool that helps you select certain range of pages from your input to print.
-You can specify your input with the last command line argument or by default input from stdin.`,
+	Long: fmt.Sprintf(`selpg is a command line utility tool that helps you select certain range of pages from your input to print.
+You can specify your input with the last command line argument or by default input from stdin.
+
+USAGE: %v -sstart_page -eend_page [ -f | -llines_per_page ] [ -ddest ] [ in_filename ]`, os.Args[0]),
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Printf("s: %v", startPage)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -45,7 +47,8 @@ func Execute() {
 	}
 }
 
-var startPage int32
+var startPage, endPage int32
+var cfgFile string
 
 func init() {
 	cobra.OnInitialize(initConfig)
@@ -53,8 +56,12 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-	rootCmd.PersistentFlags().Int32VarP(&startPage, "start_page", "s", -1,  "The first page to be selected")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (defalut in $HOME/.cobra.yaml)")
+	rootCmd.PersistentFlags().Int32VarP(&startPage, "start_page", "s", 0,  "The first page to be selected")
+	rootCmd.PersistentFlags().Int32VarP(&endPage, "end_page", "e", 0,  "The last page to be selected")
+
 	rootCmd.MarkPersistentFlagRequired("start_page")
+	rootCmd.MarkPersistentFlagRequired("end_page")
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")

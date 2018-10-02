@@ -19,13 +19,5 @@ import (
 )
 
 func main() {
-	//startPage := pflag.IntP("start_page", "s", -1, "The first page to be selected.")
-	//endPage := pflag.IntP("end_page", "e", -1, "The last page to be selected.")
-	//if *startPage < 0 {
-	//	fmt.Printf("%v: No valid start_page specified", os.Args[0])
-	//}
-	//if *endPage < 0 {
-	//	fmt.Printf("%v: No valid end_page specified", os.Args[0])
-	//}
 	cmd.Execute()
 }

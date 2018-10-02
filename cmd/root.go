@@ -18,9 +18,10 @@ import (
 	"fmt"
 	"os"
 
-	homedir "github.com/mitchellh/go-homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"github.com/Miguel-Chan/selpg-go/selpg"
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -31,10 +32,25 @@ var rootCmd = &cobra.Command{
 You can specify your input with the last command line argument or by default input from stdin.
 
 USAGE: %v -sstart_page -eend_page [ -f | -llines_per_page ] [ -ddest ] [ in_filename ]`, os.Args[0]),
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) < 1 {
+			inputFile = ""
+		} else {
+			inputFile = args[0]
+		}
+		return nil
+	},
+
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("s: %v", startPage)
+		fmt.Printf("s: %v\n", startPage)
+		fmt.Printf("e: %v\n", endPage)
+		fmt.Printf("l: %v\n", lineNum)
+		fmt.Printf("f: %v\n", useFormFeed)
+		fmt.Printf("d: %v\n", destination)
+		fmt.Printf("input: %v\n", inputFile)
+		sp := selpg.NewSelpg(startPage, endPage, lineNum, destination, inputFile, useFormFeed)
+		sp.Run()
 	},
 }
 
@@ -47,24 +63,23 @@ func Execute() {
 	}
 }
 
-var startPage, endPage int32
+var startPage, endPage, lineNum int
+var useFormFeed bool
+var destination, inputFile string
 var cfgFile string
 
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (defalut in $HOME/.cobra.yaml)")
-	rootCmd.PersistentFlags().Int32VarP(&startPage, "start_page", "s", 0,  "The first page to be selected")
-	rootCmd.PersistentFlags().Int32VarP(&endPage, "end_page", "e", 0,  "The last page to be selected")
+	rootCmd.Flags().StringVar(&cfgFile, "config", "", "config file (defalut in $HOME/.cobra.yaml)")
+	rootCmd.Flags().IntVarP(&startPage, "start_page", "s", 0,  "The first page to be selected")
+	rootCmd.Flags().IntVarP(&endPage, "end_page", "e", 0,  "The last page to be selected")
+	rootCmd.Flags().IntVarP(&lineNum, "line_number", "l", 72,  "The number of lines in every page")
+	rootCmd.Flags().BoolVarP(&useFormFeed, "form_feed", "f", false, "Use \\f as the seperator of each page")
+	rootCmd.Flags().StringVarP(&destination, "destination", "d", "", "Specify printer for output instead of stdout")
 
-	rootCmd.MarkPersistentFlagRequired("start_page")
-	rootCmd.MarkPersistentFlagRequired("end_page")
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.MarkFlagRequired("start_page")
+	rootCmd.MarkFlagRequired("end_page")
 }
 
 // initConfig reads in config file and ENV variables if set.

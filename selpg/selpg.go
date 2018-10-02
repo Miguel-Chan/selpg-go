@@ -66,10 +66,10 @@ func (sp selpg) Run() {
 		//"l" mode
 		currentLine := 1
 		for {
-			line, err := bufReader.ReadString('\n')
+			line, err := bufReader.ReadBytes('\n')
 			if err != nil {
 				if err == io.EOF {
-					break;
+					break
 				} else {
 					log.Fatalf("Error: %v\n", err)
 					os.Exit(1)
@@ -77,7 +77,7 @@ func (sp selpg) Run() {
 			}
 			if currentLine >= sp.pageLines*(sp.startPage-1)+1 &&
 				currentLine <= sp.totalPages * sp.pageLines {
-					bufWriter.WriteString(line)
+					bufWriter.Write(line)
 			}
 			currentLine += 1
 		}

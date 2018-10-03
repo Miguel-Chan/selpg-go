@@ -112,6 +112,7 @@ func (sp Selpg) Run() {
 		cmd.Stdin = buf
 		cmd.Run()
 		io.Copy(os.Stderr, piper)
+		defer bufio.NewWriter(os.Stderr).Flush()
 		cmd.Wait()
 	}
 	if totalPages < sp.startPage {

@@ -43,12 +43,17 @@ USAGE: %v -sstart_page -eend_page [ -f | -llines_per_page ] [ -ddest ] [ in_file
 	},
 
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf("s: %v\n", startPage)
-		fmt.Printf("e: %v\n", endPage)
-		fmt.Printf("l: %v\n", lineNum)
-		fmt.Printf("f: %v\n", useFormFeed)
-		fmt.Printf("d: %v\n", destination)
-		fmt.Printf("input: %v\n", inputFile)
+		if useFormFeed && lineNum != 72 {
+			fmt.Printf("%v: Invalid flags: -lNumber and -f are exclusive.\n", os.Args[0])
+			os.Exit(1)
+		}
+		if startPage <= 0 {
+			fmt.Printf("%v: Invalid start page %v\n", os.Args[0], startPage)
+			os.Exit(1)
+		}
+		if endPage < startPage {
+			fmt.Printf("%v: Invalid end page %v\n", os.Args[0], endPage)
+		}
 		sp := selpg.NewSelpg(startPage, endPage, lineNum, destination, inputFile, useFormFeed)
 		sp.Run()
 	},

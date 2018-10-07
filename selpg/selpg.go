@@ -8,6 +8,7 @@ import(
 	"log"
 	"os/exec"
 	"bytes"
+	"github.com/pkg/errors"
 )
 
 type Selpg struct {
@@ -28,9 +29,8 @@ func NewSelpg(start, end, lines int, dest, input string, useFormFeed bool) Selpg
 	}
 }
 
-func (sp Selpg) Run() {
+func (sp Selpg) GetPages(writer io.Writer) (err error) {
 	var reader io.Reader
-	var writer io.Writer
 	if sp.inputFile != "" {
 		file, err := os.Open(sp.inputFile)
 		if err != nil {
@@ -40,25 +40,6 @@ func (sp Selpg) Run() {
 		reader = file
 	} else {
 		reader = os.Stdin
-	}
-	var cmd *exec.Cmd
-	piper, pipew := io.Pipe()
-	buf := new(bytes.Buffer)
-	if sp.destination != "" {
-		cmd = exec.Command("lp", fmt.Sprintf("-d%v", sp.destination))
-
-		writer = buf
-
-		stderr, _ := cmd.StderrPipe()
-		stdout, _ := cmd.StdoutPipe()
-		go func() {
-			defer pipew.Close()
-			io.Copy(pipew, stdout)
-			io.Copy(pipew, stderr)
-		}()
-
-	} else {
-		writer = os.Stdout
 	}
 	bufReader := bufio.NewReader(reader)
 	bufWriter := bufio.NewWriter(writer)
@@ -81,8 +62,8 @@ func (sp Selpg) Run() {
 				bufWriter.WriteByte(ch)
 			}
 			if ch == '\f' {
-				currentPage += 1
 				bufWriter.Flush()
+				currentPage += 1
 			}
 		}
 		totalPages = currentPage
@@ -101,13 +82,44 @@ func (sp Selpg) Run() {
 			}
 			if currentLine >= sp.pageLines*(sp.startPage-1)+1 &&
 				currentLine <= sp.totalPages * sp.pageLines {
-					bufWriter.WriteString(line)
+				bufWriter.WriteString(line)
 			}
-			currentLine += 1
 			bufWriter.Flush()
+			currentLine += 1
 		}
 		totalPages = currentLine / sp.pageLines + 1
 	}
+	if totalPages < sp.startPage {
+		err = errors.New(fmt.Sprintf("start_page (%v) greater than total pages (%v), no output written", sp.startPage, totalPages))
+	} else if totalPages < sp.endPage {
+		err = errors.New(fmt.Sprintf("end_page (%v) greater than total pages (%v), less output than expected", sp.endPage, totalPages))
+	}
+	bufWriter.Flush()
+	return err
+}
+
+func (sp Selpg) Run() {
+	var writer io.Writer
+
+	var cmd *exec.Cmd
+	piper, pipew := io.Pipe()
+	buf := new(bytes.Buffer)
+	if sp.destination != "" {
+		cmd = exec.Command("lp", fmt.Sprintf("-d%v", sp.destination))
+
+		writer = buf
+
+		stderr, _ := cmd.StderrPipe()
+		go func() {
+			defer pipew.Close()
+			io.Copy(pipew, stderr)
+		}()
+
+	} else {
+		writer = os.Stdout
+	}
+	err := sp.GetPages(writer)
+
 	if sp.destination != "" {
 		cmd.Stdin = buf
 		cmd.Run()
@@ -115,11 +127,11 @@ func (sp Selpg) Run() {
 		defer bufio.NewWriter(os.Stderr).Flush()
 		cmd.Wait()
 	}
-	if totalPages < sp.startPage {
-		fmt.Printf("%v: start_page (%v) greater than total pages (%v), no output written\n", os.Args[0], sp.startPage, totalPages)
-	} else if totalPages < sp.endPage {
-		fmt.Printf("%v: end_page (%v) greater than total pages (%v), less output than expected\n", os.Args[0], sp.endPage, totalPages)
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v: %v\n", os.Args[0], err)
 	}
-	fmt.Printf("%v: Done\n", os.Args[0])
+
+	fmt.Fprintf(os.Stderr, "%v: Done\n", os.Args[0])
 }
 
